@@ -1,0 +1,148 @@
+CODE REVIEW AI - ARCHITECTURE DIAGRAM
+=====================================
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          EXTERNAL SERVICES                                │
+│                                                                           │
+│         ┌─────────────────┐              ┌─────────────────┐             │
+│         │   GitHub API    │              │   Claude API    │             │
+│         └────────┬────────┘              └────────┬────────┘             │
+└──────────────────┼─────────────────────────────────┼────────────────────┘
+                   │                                 │
+                   │ Webhook                         │ Analysis
+                   │                                 │
+┌──────────────────┼─────────────────────────────────┼────────────────────┐
+│                  │      FASTAPI SERVER (main.py)   │                     │
+│                  ▼                                 │                     │
+│         ┌─────────────────┐                        │                     │
+│         │ POST /webhook   │                        │                     │
+│         │   /github       │                        │                     │
+│         └────────┬────────┘                        │                     │
+│                  │                                 │                     │
+│         ┌────────┴────────┐              ┌─────────┴────────┐            │
+│         │ POST /analyze   │              │  GET /health     │            │
+│         └────────┬────────┘              └──────────────────┘            │
+└──────────────────┼───────────────────────────────────────────────────────┘
+                   │
+                   │ Orchestrates
+                   │
+┌──────────────────┼───────────────────────────────────────────────────────┐
+│                  │              CORE MODULES                              │
+│                  ▼                                                        │
+│         ┌─────────────────┐                                              │
+│    ┌────│   parser.py     │────┐                                         │
+│    │    │  (AST Parsing)  │    │                                         │
+│    │    └─────────────────┘    │                                         │
+│    │                            │                                         │
+│    │ Python Code                │ AST Object                             │
+│    │                            │                                         │
+│    │    ┌─────────────────┐    │                                         │
+│    └────▶  analyzer.py    │◀───┘                                         │
+│         │ (Bug Detection) │                                              │
+│         └────────┬────────┘                                              │
+│                  │                                                        │
+│                  │ List of Bugs                                          │
+│                  │                                                        │
+│         ┌────────▼────────┐                                              │
+│         │  llm_client.py  │◀──────────────────────────────────┐          │
+│         │ (Claude API)    │                                   │          │
+│         └────────┬────────┘                                   │          │
+│                  │                                            │          │
+│                  │ Analysis + Suggestions                     │          │
+│                  │                                            │          │
+│         ┌────────▼────────┐                                   │          │
+│         │    fixer.py     │                                   │          │
+│         │  (Auto-Fix)     │                                   │          │
+│         └────────┬────────┘                                   │          │
+│                  │                                            │          │
+│                  │ Fixed Code + Diff                          │          │
+│                  │                                            │          │
+│         ┌────────▼────────┐                                   │          │
+│         │github_client.py │───────────────────────────────────┘          │
+│         │  (GitHub Auto)  │                                              │
+│         └────────┬────────┘                                              │
+└──────────────────┼───────────────────────────────────────────────────────┘
+                   │
+                   │ Post Comments
+                   ▼
+            ┌─────────────┐
+            │  GitHub PR  │
+            │  Comments   │
+            └─────────────┘
+
+
+DATA FLOW SEQUENCE:
+===================
+
+1. Python Code  ──────────▶  parser.py
+                               │
+2. AST Object   ◀──────────────┘
+                │
+3. AST Object   ──────────▶  analyzer.py
+                               │
+4. List[Bugs]   ◀──────────────┘
+                │
+5. Bugs + Code  ──────────▶  llm_client.py  ──▶  Claude API
+                               │
+6. Analysis     ◀──────────────┘
+                │
+7. Analysis     ──────────▶  fixer.py
+                               │
+8. Fixed Code   ◀──────────────┘
+                │
+9. Fixes        ──────────▶  github_client.py  ──▶  GitHub API
+                               │
+10. Comments    ◀──────────────┘
+
+
+MODULE DEPENDENCIES:
+====================
+
+parser.py           (no dependencies)
+    │
+    ├──▶ analyzer.py      (uses parser)
+            │
+            ├──▶ llm_client.py   (uses analyzer)
+                    │
+                    ├──▶ fixer.py        (uses llm_client)
+                            │
+                            ├──▶ github_client.py  (uses fixer)
+                                    │
+                                    └──▶ main.py           (orchestrates all)
+
+
+CONFIGURATION:
+==============
+
+.env (secrets)
+├── ANTHROPIC_API_KEY
+├── GITHUB_TOKEN
+└── GITHUB_WEBHOOK_SECRET
+
+
+DEPLOYMENT:
+===========
+
+Docker Container
+├── FastAPI Server (port 8000)
+├── All modules loaded
+└── Environment variables injected
+
+Deployed on Railway/Render
+└── Public URL: https://your-app.railway.app
+
+
+GITHUB WEBHOOK FLOW:
+====================
+
+1. Developer opens PR
+2. GitHub sends webhook ──▶ POST /webhook/github
+3. FastAPI receives event
+4. Get PR files from GitHub API
+5. For each Python file:
+   ├── Parse code
+   ├── Detect bugs
+   ├── Analyze with Claude
+   ├── Generate fixes
+   └── Post comments
+6. Developer sees comments on PR
