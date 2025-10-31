@@ -1,12 +1,3 @@
-"""
-input: python file 
-output : parsed file 
-step 0: imports
-step 1: load file 
-step 2 : parse file 
-step 3 : save parsed file 
-
-"""
 
 import ast 
 from pathlib import Path
