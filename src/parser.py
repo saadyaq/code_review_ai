@@ -21,10 +21,29 @@ def parser(file_path):
         return tree
     except SyntaxError as e:
         print(f"Syntax error {e}")
+        return None
 
-def main ():
-    file_path="/home/saadyaq/SE/Python/code_review_ai/test.py"
-    parser(file_path)
+def extract_functions(tree):
+    """Extract all functions of an ast"""  
+    functions=[]
+    for node in ast.walk(tree):
+        if isinstance(node,ast.FunctionDef):
+            functions.append({
+                'name':node.name,
+                'line':node.lineno,
+                'args':[arg.arg for arg in node.args.args],
+                'docstring':ast.get_docstring(node)
+            })
+    return functions
+def extract_classes(tree):
+    """Extract all classes from an ast"""
+
+def extract_imports(tree):
+    pass
+
+
+def main():
+    parser()
 
 if __name__=="__main__":
     main()
