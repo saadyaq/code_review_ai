@@ -37,9 +37,17 @@ def extract_functions(tree):
     return functions
 def extract_classes(tree):
     """Extract all classes from an ast"""
-
+    classes=[]
+    for node in ast.walk(tree):
+        if isinstance(node,ast.ClassDef):
+            classes.append({
+                'name':node.name,
+                'line':node.lineno,
+                'methods':[m.name for m in node.body if isinstance(m,ast.FunctionDef)],
+                'docstring': ast.get_docstring(node)})
+    return classes
 def extract_imports(tree):
-    pass
+    """Extract all classes from an ast"""
 
 
 def main():
