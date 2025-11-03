@@ -1,17 +1,17 @@
 
 import ast 
 from pathlib import Path
+from typing import List, Dict
 
 #step 
 
-def parser(file_path):
-    """Parse file structure """
-    try: 
-        file_path=Path(file_path).read_text(encoding="utf-8")
-        tree=ast.parse(file_path)
+def parse_code(code: str):
+    """Parse Python code string and return AST"""
+    try:
+        tree = ast.parse(code)
         return tree
     except SyntaxError as e:
-        print(f"Syntax error {e}")
+        print(f"Syntax error: {e}")
         return None
 
 def extract_functions(tree):
@@ -51,13 +51,14 @@ def extract_imports(tree):
                 imports.append(f"{module}.{alias.name}")
     return imports
 
-def main():
-    file_path="/home/saadyaq/SE/Python/code_review_ai/test.py"
-    tree=parser(file_path)
-    classes=extract_classes(tree)
-    functions=extract_functions(tree)
-    imports=extract_imports(tree)
-    print(f"classes{classes}, functions{functions},imports{imports}")
+def analyze_python_file(filepath:str)-> Dict:
+    """Complete analysis of the python file """
+    code=Path(filepath).read_text(encoding="utf-8")
+    tree=ast.parse(code)
+    return {
+        'functions':extract_functions(tree),
+        'classes':extract_classes(tree),
+        'imports':extract_imports(tree),
+        'number of lines':len(code.splitlines())
+    }
 
-if __name__=="__main__":
-    main()
