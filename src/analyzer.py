@@ -74,4 +74,18 @@ def detect_unused_imports(tree,code:str):
             'message': f"Import '{imp}' is imported but never used"
         })
     return issues
-                
+
+def detect_security_issues(tree):
+    """detect security issues"""
+    issues=[]
+    for node in ast.walk(tree):
+        #Detect eval() and exec()
+        if isinstance(node,ast.Call()):
+            if isinstance(node.func,ast.Name):
+                if node.func.id in ['eval','exec']:
+                    issues.append({type': 'security',
+                        'severity': 'high',
+                        'line': node.lineno,
+                        'message': f"Usage dangereux de {node.func.id}()"
+
+                    })
