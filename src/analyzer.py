@@ -83,7 +83,7 @@ def detect_security_issues(tree):
         if isinstance(node,ast.Call()):
             if isinstance(node.func,ast.Name):
                 if node.func.id in ['eval','exec']:
-                    issues.append({type': 'security',
+                    issues.append({'type': 'security',
                         'severity': 'high',
                         'line': node.lineno,
                         'message': f"Usage dangereux de {node.func.id}()"
