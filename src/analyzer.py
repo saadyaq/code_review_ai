@@ -89,3 +89,4 @@ def detect_security_issues(tree):
                         'message': f"Usage dangereux de {node.func.id}()"
 
                     })
+    return issues
