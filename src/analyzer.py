@@ -46,3 +46,32 @@ def detect_missing_type_hints(tree, code: str) -> List[Dict]:
                 })
     return issues
 
+def detect_unused_imports(tree,code:str):
+    """Detect unused imports """
+
+    imports=set()
+    used=()
+    for node in ast.walk(tree):
+        if isinstance(node,ast.Import):
+            for alias in node.names:
+                name=alias.asname or alias.name.split('.')[0]
+                imports.add(name)
+        elif isinstance(node,ast.ImportFrom):
+            for alias in node.names:
+                name=alias.asname or alias.asname.split('.')[0]
+                imports.add(name)
+    for node in ast.walk(tree):
+        if isinstance(node,ast.Name):
+            used.Add(node.id)
+    
+    unused=imports-used
+    issues = []
+    for imp in unused:
+        issues.append({
+            'type': 'unused_import',
+            'severity': 'warning',
+            'import': imp,
+            'message': f"Import '{imp}' is imported but never used"
+        })
+    return issues
+                
