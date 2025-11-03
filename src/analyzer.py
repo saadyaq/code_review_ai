@@ -46,25 +46,26 @@ def detect_missing_type_hints(tree, code: str) -> List[Dict]:
                 })
     return issues
 
-def detect_unused_imports(tree,code:str):
-    """Detect unused imports """
+def detect_unused_imports(tree, code: str):
+    """Detect unused imports"""
+    imports = set()
+    used = set()
 
-    imports=set()
-    used=()
     for node in ast.walk(tree):
-        if isinstance(node,ast.Import):
+        if isinstance(node, ast.Import):
             for alias in node.names:
-                name=alias.asname or alias.name.split('.')[0]
+                name = alias.asname or alias.name.split('.')[0]
                 imports.add(name)
-        elif isinstance(node,ast.ImportFrom):
+        elif isinstance(node, ast.ImportFrom):
             for alias in node.names:
-                name=alias.asname or alias.asname.split('.')[0]
+                name = alias.asname or alias.name.split('.')[0]
                 imports.add(name)
+
     for node in ast.walk(tree):
-        if isinstance(node,ast.Name):
-            used.Add(node.id)
-    
-    unused=imports-used
+        if isinstance(node, ast.Name):
+            used.add(node.id)
+
+    unused = imports - used
     issues = []
     for imp in unused:
         issues.append({
@@ -80,14 +81,14 @@ def detect_security_issues(tree):
     issues=[]
     for node in ast.walk(tree):
         #Detect eval() and exec()
-        if isinstance(node,ast.Call()):
-            if isinstance(node.func,ast.Name):
-                if node.func.id in ['eval','exec']:
-                    issues.append({'type': 'security',
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name):
+                if node.func.id in ['eval', 'exec']:
+                    issues.append({
+                        'type': 'security',
                         'severity': 'high',
                         'line': node.lineno,
                         'message': f"Usage dangereux de {node.func.id}()"
-
                     })
     return issues
 
@@ -133,17 +134,18 @@ def count_by_severity(issues: List[Dict]) -> Dict[str, int]:
     return severity_counts
 
 def analyze_code_quality(filepath: str) -> Dict:
-    """Analyse complète de la qualité du code."""
+    """Complete analysis of the code"""
     code = Path(filepath).read_text(encoding='utf-8')
     tree = ast.parse(code)
-    
+
     all_issues = []
-    all_issues.extend(detect_unused_variables(tree))
+    all_issues.extend(detect_unused_variables(tree, code))
+    all_issues.extend(detect_missing_type_hints(tree, code))
     all_issues.extend(detect_unused_imports(tree, code))
     all_issues.extend(detect_security_issues(tree))
     all_issues.extend(detect_long_functions(tree))
     all_issues.extend(detect_missing_docstrings(tree))
-    
+
     return {
         'total_issues': len(all_issues),
         'issues': all_issues,
