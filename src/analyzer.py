@@ -4,7 +4,7 @@ from typing import List, Dict
 
 
 
-def declare_unused_variables(tree, code: str) -> List[Dict]:
+def detect_unused_variables(tree, code: str) -> List[Dict]:
     """Detect unused variables in the code"""
     assigned = set()
     used = set()
@@ -108,3 +108,44 @@ def detect_long_functions(tree,max_lines=50):
                     })
     
     return issues
+
+def detect_missing_docstrings(tree):
+    """Detect functions/classes without docstrings"""
+    issues=[]
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+            if not ast.get_docstring(node):
+                issues.append({
+                    'type': 'documentation',
+                    'line': node.lineno,
+                    'name': node.name,
+                    'message': f"{node.__class__.__name__} '{node.name}' sans docstring"
+                })
+    
+    return issues
+
+def count_by_severity(issues: List[Dict]) -> Dict[str, int]:
+    """Count issues by severity level"""
+    severity_counts = {}
+    for issue in issues:
+        severity = issue.get('severity', 'unknown')
+        severity_counts[severity] = severity_counts.get(severity, 0) + 1
+    return severity_counts
+
+def analyze_code_quality(filepath: str) -> Dict:
+    """Analyse complète de la qualité du code."""
+    code = Path(filepath).read_text(encoding='utf-8')
+    tree = ast.parse(code)
+    
+    all_issues = []
+    all_issues.extend(detect_unused_variables(tree))
+    all_issues.extend(detect_unused_imports(tree, code))
+    all_issues.extend(detect_security_issues(tree))
+    all_issues.extend(detect_long_functions(tree))
+    all_issues.extend(detect_missing_docstrings(tree))
+    
+    return {
+        'total_issues': len(all_issues),
+        'issues': all_issues,
+        'severity_breakdown': count_by_severity(all_issues)
+    }
