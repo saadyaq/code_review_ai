@@ -90,3 +90,21 @@ def detect_security_issues(tree):
 
                     })
     return issues
+
+def detect_long_functions(tree,max_lines=50):
+    """Detect long functions"""
+    issues=[]
+
+    for node in ast.walk(tree):
+        if isinstance(node,ast.FunctionDef):
+            if hasattr(node,'end_lineno'):
+                lines=node.end_lineno-node.lineno
+                if lines>max_lines:
+                    issues.append({
+                        'type': 'complexity',
+                        'line': node.lineno,
+                        'function': node.name,
+                        'message': f"Fonction {node.name} trop longue ({lines} lignes)"
+                    })
+    
+    return issues
