@@ -53,3 +53,18 @@ Respond in JSON with this structure:
 
     return prompt
 
+def analyze_with_claude(code:str, issues:List[Dict])->Dict:
+    """Code analysis with claude"""
+    prompt=create_analysis_prompt(code,issues)
+    response=client.message.create(
+        model="claude-haiku-4-5",
+        max_tokens=4096,
+        messages=[{'role':'user','content':prompt}]
+    )
+
+    import json 
+    response_text=response.content[0].text
+    start=response_text.find('{')
+    end=response_text.find('}')
+    json_text=response_text[start:end]
+    return json.loads(json_text)
