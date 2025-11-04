@@ -68,3 +68,28 @@ def analyze_with_claude(code:str, issues:List[Dict])->Dict:
     end=response_text.find('}')
     json_text=response_text[start:end]
     return json.loads(json_text)
+
+def generate_fix(code:str, issue:Dict) ->str:
+    """Generate a fix for a specific issue"""
+    prompt = f"""Tu es un expert Python. Corrige ce problème:
+
+CODE ORIGINAL:
+```python
+{code}
+```
+
+PROBLÈME (ligne {issue['line']}):
+{issue['message']}
+
+Réponds UNIQUEMENT avec le code corrigé complet, sans explication.
+"""
+
+    response = client.messages.create(
+        model="claude-haiku-4-5",
+        max_tokens=4096,
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
+    )
+    
+    return response.content[0].text
