@@ -1,21 +1,25 @@
-import anthropic 
-import os 
+import anthropic
+import os
+import difflib
+from pathlib import Path
+from src.analyzer import analyze_code_quality
 from dotenv import load_dotenv
-from typing import List,Dict
+from typing import List, Dict
 
 load_dotenv()
 
-client=anthropic.Anthropic(
-    api_key=os.getenv("ANTHROPIC_API_KEY")
-)
+# Verify API key exists
+api_key = os.getenv("ANTHROPIC_API_KEY")
+if not api_key:
+    raise ValueError("ANTHROPIC_API_KEY not found in environment variables")
 
-if client:
-    print("the api key is found")
+client = anthropic.Anthropic(api_key=api_key)
+print("✓ Claude API client initialized successfully")
 
 def create_analysis_prompt(code:str,issues: List[Dict])->str:
     """Create the prompt for claude"""
     issues_text = "\n".join([
-        f"- Line {issue['line']}: {issue['message']}"
+        f"- Line {issue.get('line', 'N/A')}: {issue['message']}"
         for issue in issues
     ])
     
@@ -56,16 +60,16 @@ Respond in JSON with this structure:
 def analyze_with_claude(code:str, issues:List[Dict])->Dict:
     """Code analysis with claude"""
     prompt=create_analysis_prompt(code,issues)
-    response=client.message.create(
-        model="claude-haiku-4-5",
+    response=client.messages.create(
+        model="claude-3-5-haiku-20241022",
         max_tokens=4096,
         messages=[{'role':'user','content':prompt}]
     )
 
-    import json 
+    import json
     response_text=response.content[0].text
     start=response_text.find('{')
-    end=response_text.find('}')
+    end=response_text.rfind('}') + 1  # Find last '}' and include it
     json_text=response_text[start:end]
     return json.loads(json_text)
 
@@ -85,7 +89,7 @@ Réponds UNIQUEMENT avec le code corrigé complet, sans explication.
 """
 
     response = client.messages.create(
-        model="claude-haiku-4-5",
+        model="claude-3-5-haiku-20241022",
         max_tokens=4096,
         messages=[
             {"role": "user", "content": prompt}
@@ -93,3 +97,48 @@ Réponds UNIQUEMENT avec le code corrigé complet, sans explication.
     )
     
     return response.content[0].text
+
+def apply_simple_fix(code:str, line_number:int, new_line:str)->str:
+    """Replace a specific line."""
+    lines=code.splitlines()
+    if 0 < line_number <= len(lines):
+        lines[line_number - 1] = new_line
+    return '\n'.join(lines)
+
+
+
+def generate_diff(original: str, fixed: str) -> str:
+    """Generate diff between original and fixed."""
+    diff = difflib.unified_diff(
+        original.splitlines(keepends=True),
+        fixed.splitlines(keepends=True),
+        fromfile='original.py',
+        tofile='fixed.py'
+    )
+    return ''.join(diff)
+
+def auto_fix_pipeline(filepath: str) -> Dict:
+    """Complete fix pipeline"""
+    # Read code and analyze
+    code = Path(filepath).read_text()
+    result = analyze_code_quality(filepath)
+    issues = result['issues']
+
+    
+    analysis = analyze_with_claude(code, issues)
+
+    
+    fixed_code = code
+    for issue in analysis['issues_analyzed']:
+        if issue.get('fix'):
+            fixed_code = generate_fix(fixed_code, issue)
+
+   
+    diff = generate_diff(code, fixed_code)
+
+    return {
+        'original': code,
+        'fixed': fixed_code,
+        'diff': diff,
+        'issues_fixed': len(analysis['issues_analyzed'])
+    }
