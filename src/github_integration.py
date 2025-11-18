@@ -24,8 +24,18 @@ def get_pr_files(repo_name:str,pr_number:int)->List[Dict]:
 
     return files
 
-
-
+def post_review_comment(repo_name:str,pr_number:str,filename:str,line:int, comment:str):
+    """Post a comment about a specific line"""
+    g=get_github_client()
+    repo=g.get_repo(repo_name)
+    pr=repo.get_pull(pr_number)
+    commit=pr.get_commit()[pr.commits - 1]
+    pr.create_review_commit(
+        body=comment,
+        commit=commit,
+        path=filename,
+        line=line
+    )
 def main():
     """Test the get_pr_files function"""
     # Example: Replace with a real repo and PR number
