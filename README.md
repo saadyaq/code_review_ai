@@ -205,7 +205,7 @@ MIT
 
 ## Author
 
-Built as a portfolio project to demonstrate software engineering skills in Python, AI integration, and DevOps.
+Yaqine Saad
 
 ## Contact
 
