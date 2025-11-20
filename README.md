@@ -26,16 +26,10 @@ Code Review AI analyzes Python code to find common bugs, security issues, and co
 
 ## Project Status
 
-🚧 In Development - Week 1/7
+🚧 In Development - Week 3/7
 
 Current progress:
-- [ ] Day 1: AST Parser
-- [ ] Day 2: Bug Detection
-- [ ] Day 3: Claude Integration
-- [ ] Day 4: Auto-Fix Generation
-- [ ] Day 5: GitHub Integration
-- [ ] Day 6: API Deployment
-- [ ] Day 7: Tests and Documentation
+- Api Deployment
 
 ## Installation
 
