@@ -7,6 +7,9 @@ from src.llm_client import auto_fix_pipeline
 
 app = FastAPI(title="Code Review AI")
 
+# Import webhook routes (must be after app creation)
+from api import webhook  # noqa: F401
+
 class CodeAnalysisRequest(BaseModel):
     code: str
     auto_fix: bool = False
@@ -44,3 +47,7 @@ async def analyze_code(request: CodeAnalysisRequest):
 async def health():
     """Health check."""
     return {"status" : "ok"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

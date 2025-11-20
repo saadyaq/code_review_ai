@@ -38,25 +38,37 @@ def post_review_comment(repo_name:str,pr_number:int,filename:str,line:int, comme
         line=line
     )
 
-def post_complete_review(repo_name: str, pr_number: int, 
+def post_complete_review(repo_name: str, pr_number: int,
                         analysis: Dict):
     """Post a complete review"""
     g = get_github_client()
     repo = g.get_repo(repo_name)
     pr = repo.get_pull(pr_number)
-    
-   
+
+
     body = f"""## 🤖 Code Review AI Analysis
 
 **Issues Found:** {analysis['total_issues']}
 
 ### Details:
 """
-    
+
     for issue in analysis['issues']:
-        body += f"- **Line {issue['line']}**: {issue['message']}\n"
-    
-    
+        filename = issue.get('filename', 'unknown')
+        line = issue.get('line', 'N/A')
+        severity = issue.get('severity', 'info')
+        message = issue['message']
+
+        # Emoji based on severity
+        emoji = {
+            'high': '🔴',
+            'warning': '⚠️',
+            'info': 'ℹ️'
+        }.get(severity, '•')
+
+        body += f"{emoji} **{filename}:{line}** - {message}\n"
+
+
     pr.create_review(
         body=body,
         event="COMMENT"
