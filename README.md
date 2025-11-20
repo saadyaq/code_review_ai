@@ -26,6 +26,11 @@ Code Review AI analyzes Python code to find common bugs, security issues, and co
 
 ## Project Status
 
+🚧 In Development - Week 3/7
+
+Current progress:
+- Api Deployment
+
 🚧 In Development - Week 4/6
 
 Current progress:
