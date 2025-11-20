@@ -37,4 +37,8 @@ async def analyze_code(request:CodeAnalysisRequest):
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
+
+@app.get('/health')
+async def health():
+    """Health check."""
+    return {"status" : "ok"}
