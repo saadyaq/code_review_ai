@@ -31,6 +31,10 @@ Code Review AI analyzes Python code to find common bugs, security issues, and co
 Current progress:
 - Api Deployment
 
+🚧 In Development - Week 4/6
+
+Current progress:
+- API Deployment
 ## Installation
 
 Clone the repository:
@@ -199,7 +203,7 @@ MIT
 
 ## Author
 
-Built as a portfolio project to demonstrate software engineering skills in Python, AI integration, and DevOps.
+Yaqine Saad
 
 ## Contact
 
