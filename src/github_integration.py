@@ -16,11 +16,19 @@ def get_pr_files(repo_name:str,pr_number:int)->List[Dict]:
     files=[]
     for file in pr.get_files():
         if file.filename.endswith(".py"):
-            files.append({
-                'filename':file.filename,
-                'content':repo.get_contents(file.filename,ref=pr.head.ref).decoded_content.decode(),
-                'patch':file.patch
-            })
+            try:
+                content = repo.get_contents(file.filename,ref=pr.head.ref).decoded_content.decode()
+                # Skip empty files
+                if content and content.strip():
+                    files.append({
+                        'filename':file.filename,
+                        'content':content,
+                        'patch':file.patch
+                    })
+            except Exception as e:
+                # Skip files that can't be fetched (deleted files, etc.)
+                print(f"Skipping {file.filename}: {e}")
+                continue
 
     return files
 
