@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 from src.analyzer import analyze_code_quality
 from src.llm_client import auto_fix_pipeline
 
-app = FastAPI(title="Code Review AI", redirect_slashes=False)
+app = FastAPI(title="Code Review AI")
 
 # Import webhook routes (must be after app creation)
 from api import webhook  # noqa: F401
