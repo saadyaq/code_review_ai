@@ -6,8 +6,7 @@ from .main import app
 
 logger = logging.getLogger(__name__)
 
-@app.post("/webhook/github")
-async def github_webhook(
+async def github_webhook_handler(
     request: Request,
     x_github_event: str = Header(None)
 ):
@@ -70,5 +69,13 @@ async def github_webhook(
     except Exception as e:
         logger.error(f"Webhook error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-            
-        
+
+# Register the handler for both with and without trailing slash
+@app.post("/webhook/github")
+@app.post("/webhook/github/")
+async def github_webhook(
+    request: Request,
+    x_github_event: str = Header(None)
+):
+    """Route wrapper for webhook handler."""
+    return await github_webhook_handler(request, x_github_event)
