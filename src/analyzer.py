@@ -133,9 +133,21 @@ def count_by_severity(issues: List[Dict]) -> Dict[str, int]:
         severity_counts[severity] = severity_counts.get(severity, 0) + 1
     return severity_counts
 
-def analyze_code_quality(filepath: str) -> Dict:
-    """Complete analysis of the code"""
-    code = Path(filepath).read_text(encoding='utf-8')
+def analyze_code_quality(code: str = None, filepath: str = None) -> Dict:
+    """Complete analysis of the code
+
+    Args:
+        code: Python code as string (optional if filepath is provided)
+        filepath: Path to Python file (optional if code is provided)
+
+    Returns:
+        Dict with analysis results
+    """
+    if filepath:
+        code = Path(filepath).read_text(encoding='utf-8')
+    elif not code:
+        raise ValueError("Either 'code' or 'filepath' must be provided")
+
     tree = ast.parse(code)
 
     all_issues = []
