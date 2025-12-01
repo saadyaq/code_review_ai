@@ -399,4 +399,3 @@ This project successfully demonstrates:
 
 **Version 1.0.0** - November 2024
 
-Made with ❤️ and [Claude Code](https://claude.com/claude-code)
