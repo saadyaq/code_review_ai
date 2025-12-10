@@ -65,7 +65,7 @@ def post_complete_review(repo_name: str, pr_number: int,
         filename = issue.get('filename', 'unknown')
         line = issue.get('line', 'N/A')
         severity = issue.get('severity', 'info')
-        message = issue['message']
+        message = issue.get('message', issue.get('description', 'No description'))
 
         # Emoji based on severity
         emoji = {
