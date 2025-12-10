@@ -6,24 +6,26 @@ from typing import List, Dict
 
 def detect_unused_variables(tree, code: str) -> List[Dict]:
     """Detect unused variables in the code"""
-    assigned = set()
+    assigned = {}  # Store variable name and line number
     used = set()
+
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
             for target in node.targets:
                 if isinstance(target, ast.Name):
-                    assigned.add(target.id)
+                    assigned[target.id] = node.lineno  # Store line number
         elif isinstance(node, ast.Name):
             if isinstance(node.ctx, ast.Load):
                 used.add(node.id)
-    unused = assigned - used
 
-    
+    unused = set(assigned.keys()) - used
+
     issues = []
     for var in unused:
         issues.append({
             'type': 'unused_variable',
             'severity': 'warning',
+            'line': assigned[var],  # Add line number
             'variable': var,
             'message': f"Variable '{var}' is assigned but never used"
         })
@@ -103,11 +105,12 @@ def detect_long_functions(tree,max_lines=50):
                 if lines>max_lines:
                     issues.append({
                         'type': 'complexity',
+                        'severity': 'warning',
                         'line': node.lineno,
                         'function': node.name,
                         'message': f"Fonction {node.name} trop longue ({lines} lignes)"
                     })
-    
+
     return issues
 
 def detect_missing_docstrings(tree):
@@ -118,11 +121,12 @@ def detect_missing_docstrings(tree):
             if not ast.get_docstring(node):
                 issues.append({
                     'type': 'documentation',
+                    'severity': 'info',
                     'line': node.lineno,
                     'name': node.name,
                     'message': f"{node.__class__.__name__} '{node.name}' sans docstring"
                 })
-    
+
     return issues
 
 def count_by_severity(issues: List[Dict]) -> Dict[str, int]:
