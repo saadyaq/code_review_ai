@@ -9,6 +9,9 @@ def get_github_client():
 
 def get_pr_files(repo_name:str,pr_number:int)->List[Dict]:
     """Retrieve modified files in a PR"""
+    import logging
+    logger = logging.getLogger(__name__)
+
     g=get_github_client()
     repo=g.get_repo(repo_name)
     pr=repo.get_pull(pr_number)
@@ -16,6 +19,11 @@ def get_pr_files(repo_name:str,pr_number:int)->List[Dict]:
     files=[]
     for file in pr.get_files():
         if file.filename.endswith(".py"):
+            # Skip deleted or removed files
+            if file.status in ['removed', 'deleted']:
+                logger.info(f"Skipping deleted file: {file.filename}")
+                continue
+
             try:
                 content = repo.get_contents(file.filename,ref=pr.head.ref).decoded_content.decode()
                 # Skip empty files
@@ -26,8 +34,8 @@ def get_pr_files(repo_name:str,pr_number:int)->List[Dict]:
                         'patch':file.patch
                     })
             except Exception as e:
-                # Skip files that can't be fetched (deleted files, etc.)
-                print(f"Skipping {file.filename}: {e}")
+                # Skip files that can't be fetched (deleted files, renamed, etc.)
+                logger.warning(f"Skipping {file.filename}: {e}")
                 continue
 
     return files
