@@ -1,10 +1,15 @@
 import logging
+import os
 from fastapi import APIRouter, Request, Header, HTTPException
 from src.analyzer import analyze_code_quality
+from src.llm_client import analyze_with_claude
 from src.github_integration import get_pr_files, post_complete_review
 from .main import app
 
 logger = logging.getLogger(__name__)
+
+# Threshold for using Claude - use Claude if AST finds more than this many issues
+CLAUDE_THRESHOLD = int(os.getenv("CLAUDE_THRESHOLD", "5"))
 
 async def github_webhook_handler(
     request: Request,
@@ -33,12 +38,27 @@ async def github_webhook_handler(
 
                 # Analyze all files and collect issues
                 all_issues = []
+                claude_used = False
+
                 for file_info in files:
                     try:
+                        # First pass: AST analysis
                         analysis = analyze_code_quality(code=file_info["content"])
+                        issues = analysis['issues']
+
+                        # Smart Claude usage: only if many issues found
+                        if len(issues) >= CLAUDE_THRESHOLD:
+                            logger.info(f"File {file_info['filename']} has {len(issues)} issues - using Claude for deep analysis")
+                            try:
+                                claude_analysis = analyze_with_claude(file_info["content"], issues)
+                                # Enrich issues with Claude's insights
+                                issues = claude_analysis.get('issues_analyzed', issues)
+                                claude_used = True
+                            except Exception as claude_error:
+                                logger.warning(f"Claude analysis failed for {file_info['filename']}: {claude_error}, falling back to AST only")
 
                         # Add filename context to each issue
-                        for issue in analysis['issues']:
+                        for issue in issues:
                             issue['filename'] = file_info['filename']
                             all_issues.append(issue)
 
@@ -61,7 +81,8 @@ async def github_webhook_handler(
                     "status": "analyzed",
                     "pr_number": pr_number,
                     "files_analyzed": len(files),
-                    "issues_found": len(all_issues)
+                    "issues_found": len(all_issues),
+                    "claude_used": claude_used
                 }
 
         return {"status": "ignored", "event": x_github_event}
