@@ -16,11 +16,19 @@ def get_pr_files(repo_name:str,pr_number:int)->List[Dict]:
     files=[]
     for file in pr.get_files():
         if file.filename.endswith(".py"):
-            files.append({
-                'filename':file.filename,
-                'content':repo.get_contents(file.filename,ref=pr.head.ref).decoded_content.decode(),
-                'patch':file.patch
-            })
+            try:
+                content = repo.get_contents(file.filename,ref=pr.head.ref).decoded_content.decode()
+                # Skip empty files
+                if content and content.strip():
+                    files.append({
+                        'filename':file.filename,
+                        'content':content,
+                        'patch':file.patch
+                    })
+            except Exception as e:
+                # Skip files that can't be fetched (deleted files, etc.)
+                print(f"Skipping {file.filename}: {e}")
+                continue
 
     return files
 
@@ -38,25 +46,37 @@ def post_review_comment(repo_name:str,pr_number:int,filename:str,line:int, comme
         line=line
     )
 
-def post_complete_review(repo_name: str, pr_number: int, 
+def post_complete_review(repo_name: str, pr_number: int,
                         analysis: Dict):
     """Post a complete review"""
     g = get_github_client()
     repo = g.get_repo(repo_name)
     pr = repo.get_pull(pr_number)
-    
-   
+
+
     body = f"""## 🤖 Code Review AI Analysis
 
 **Issues Found:** {analysis['total_issues']}
 
 ### Details:
 """
-    
+
     for issue in analysis['issues']:
-        body += f"- **Line {issue['line']}**: {issue['message']}\n"
-    
-    
+        filename = issue.get('filename', 'unknown')
+        line = issue.get('line', 'N/A')
+        severity = issue.get('severity', 'info')
+        message = issue['message']
+
+        # Emoji based on severity
+        emoji = {
+            'high': '🔴',
+            'warning': '⚠️',
+            'info': 'ℹ️'
+        }.get(severity, '•')
+
+        body += f"{emoji} **{filename}:{line}** - {message}\n"
+
+
     pr.create_review(
         body=body,
         event="COMMENT"

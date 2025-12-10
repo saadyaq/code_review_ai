@@ -117,11 +117,24 @@ def generate_diff(original: str, fixed: str) -> str:
     )
     return ''.join(diff)
 
-def auto_fix_pipeline(filepath: str) -> Dict:
-    """Complete fix pipeline"""
-    # Read code and analyze
-    code = Path(filepath).read_text()
-    result = analyze_code_quality(filepath)
+def auto_fix_pipeline(code: str = None, filepath: str = None) -> Dict:
+    """Complete fix pipeline
+
+    Args:
+        code: Python code as string (optional if filepath is provided)
+        filepath: Path to Python file (optional if code is provided)
+
+    Returns:
+        Dict with original code, fixed code, diff, and issues fixed count
+    """
+    # Read code if filepath provided
+    if filepath:
+        code = Path(filepath).read_text()
+    elif not code:
+        raise ValueError("Either 'code' or 'filepath' must be provided")
+
+    # Analyze code
+    result = analyze_code_quality(code=code)
     issues = result['issues']
 
     
