@@ -130,6 +130,9 @@ async def github_webhook_handler(
 
         return {"status": "ignored", "event": x_github_event}
 
+    except HTTPException:
+        # Preserve intentional responses (e.g. 401 from signature verification)
+        raise
     except Exception as e:
         logger.error(f"Webhook error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -140,7 +143,10 @@ async def github_webhook_handler(
 async def github_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
-    x_github_event: str = Header(None)
+    x_github_event: str = Header(None),
+    x_hub_signature_256: str = Header(None)
 ):
     """Route wrapper for webhook handler."""
-    return await github_webhook_handler(request, background_tasks, x_github_event)
+    return await github_webhook_handler(
+        request, background_tasks, x_github_event, x_hub_signature_256
+    )

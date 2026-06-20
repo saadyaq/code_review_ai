@@ -1,9 +1,18 @@
+import hashlib
+import hmac
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, AsyncMock, MagicMock
 from api.main import app
 
 client = TestClient(app)
+
+
+def _sign(secret: str, body: bytes) -> str:
+    """Build a GitHub-style X-Hub-Signature-256 header value."""
+    return "sha256=" + hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
 
 @pytest.fixture
 def mock_github_payload():
@@ -85,3 +94,46 @@ def test_github_webhook_error(mock_get_files, mock_github_payload):
     
     assert response.status_code == 500
     assert "GitHub API Error" in response.json()["detail"]
+
+
+@patch("api.webhook.WEBHOOK_SECRET", "test-secret")
+@patch("api.webhook.get_pr_files")
+def test_github_webhook_valid_signature(mock_get_files, mock_github_payload):
+    mock_get_files.return_value = []
+
+    body = json.dumps(mock_github_payload).encode("utf-8")
+    headers = {
+        "X-GitHub-Event": "pull_request",
+        "X-Hub-Signature-256": _sign("test-secret", body),
+        "Content-Type": "application/json",
+    }
+    response = client.post("/webhook/github", content=body, headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "no_python_files"
+
+
+@patch("api.webhook.WEBHOOK_SECRET", "test-secret")
+@patch("api.webhook.get_pr_files")
+def test_github_webhook_invalid_signature(mock_get_files, mock_github_payload):
+    body = json.dumps(mock_github_payload).encode("utf-8")
+    headers = {
+        "X-GitHub-Event": "pull_request",
+        "X-Hub-Signature-256": _sign("wrong-secret", body),
+        "Content-Type": "application/json",
+    }
+    response = client.post("/webhook/github", content=body, headers=headers)
+
+    assert response.status_code == 401
+    mock_get_files.assert_not_called()
+
+
+@patch("api.webhook.WEBHOOK_SECRET", "test-secret")
+@patch("api.webhook.get_pr_files")
+def test_github_webhook_missing_signature(mock_get_files, mock_github_payload):
+    body = json.dumps(mock_github_payload).encode("utf-8")
+    headers = {"X-GitHub-Event": "pull_request", "Content-Type": "application/json"}
+    response = client.post("/webhook/github", content=body, headers=headers)
+
+    assert response.status_code == 401
+    mock_get_files.assert_not_called()
