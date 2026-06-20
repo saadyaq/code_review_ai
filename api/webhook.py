@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import logging
 import os
 from fastapi import APIRouter, Request, Header, HTTPException, BackgroundTasks
@@ -10,6 +12,32 @@ logger = logging.getLogger(__name__)
 
 # Threshold for using Claude - use Claude if AST finds more than this many issues
 CLAUDE_THRESHOLD = int(os.getenv("CLAUDE_THRESHOLD", "5"))
+
+# Shared secret configured in the GitHub webhook settings. When set, every
+# incoming payload must carry a valid X-Hub-Signature-256 header.
+WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
+
+
+def verify_signature(payload_body: bytes, signature_header: str) -> None:
+    """Verify the GitHub HMAC SHA-256 signature of a webhook payload.
+
+    Raises HTTPException(401) if verification is enabled and the signature is
+    missing or invalid. If WEBHOOK_SECRET is not configured, verification is
+    skipped (useful for local development).
+    """
+    if not WEBHOOK_SECRET:
+        logger.warning("WEBHOOK_SECRET not set - skipping signature verification")
+        return
+
+    if not signature_header:
+        raise HTTPException(status_code=401, detail="Missing X-Hub-Signature-256 header")
+
+    expected = "sha256=" + hmac.new(
+        WEBHOOK_SECRET.encode("utf-8"), payload_body, hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(expected, signature_header):
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
 
 def process_pr_analysis(repo_name: str, pr_number: int, files: list):
     """Background task to analyze PR files and post review"""
@@ -60,10 +88,16 @@ def process_pr_analysis(repo_name: str, pr_number: int, files: list):
 async def github_webhook_handler(
     request: Request,
     background_tasks: BackgroundTasks,
-    x_github_event: str = Header(None)
+    x_github_event: str = Header(None),
+    x_hub_signature_256: str = Header(None)
 ):
     """Handle Github webhooks for pull requests."""
     try:
+        # Read the raw body first so we can verify the signature over the exact
+        # bytes GitHub signed, then parse JSON from those same bytes.
+        body = await request.body()
+        verify_signature(body, x_hub_signature_256)
+
         payload = await request.json()
 
         if x_github_event == "pull_request":
