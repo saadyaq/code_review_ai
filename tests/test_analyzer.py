@@ -277,7 +277,7 @@ class Calculator:
 """
         test_file.write_text(test_code)
 
-        result = analyze_code_quality(str(test_file))
+        result = analyze_code_quality(filepath=str(test_file))
 
         # Check structure
         assert 'total_issues' in result
@@ -304,7 +304,7 @@ def add(x: int, y: int) -> int:
 '''
         test_file.write_text(test_code)
 
-        result = analyze_code_quality(str(test_file))
+        result = analyze_code_quality(filepath=str(test_file))
 
         # Should have very few issues
         assert result['total_issues'] >= 0
@@ -320,7 +320,7 @@ def dangerous():
 """
         test_file.write_text(test_code)
 
-        result = analyze_code_quality(str(test_file))
+        result = analyze_code_quality(filepath=str(test_file))
 
         # Should detect eval as security issue
         issue_types = {issue['type'] for issue in result['issues']}

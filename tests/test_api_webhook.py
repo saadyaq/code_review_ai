@@ -33,10 +33,11 @@ def test_github_webhook_opened_pr(mock_post_review, mock_analyze, mock_get_files
     response = client.post("/webhook/github", json=mock_github_payload, headers=headers)
     
     assert response.status_code == 200
-    assert response.json()["status"] == "analyzed"
-    assert response.json()["issues_found"] == 1
-    
+    assert response.json()["status"] == "queued"
+    assert response.json()["files_to_analyze"] == 1
+
     mock_get_files.assert_called_once_with("user/repo", 123)
+    # Background task runs after the response is returned by TestClient
     mock_analyze.assert_called_once()
     mock_post_review.assert_called_once()
 
@@ -70,8 +71,9 @@ def test_github_webhook_no_issues(mock_post_review, mock_analyze, mock_get_files
     response = client.post("/webhook/github", json=mock_github_payload, headers=headers)
     
     assert response.status_code == 200
-    assert response.json()["issues_found"] == 0
-    
+    assert response.json()["status"] == "queued"
+
+    # No issues found, so the background task skips posting a review
     mock_post_review.assert_not_called()
 
 @patch("api.webhook.get_pr_files")
